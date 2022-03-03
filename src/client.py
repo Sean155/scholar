@@ -45,6 +45,7 @@ class client():
             api = self.client()
         res = api.post(url=url, json=json)
         api.close()
+        
         return res
     
     
