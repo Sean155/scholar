@@ -1,21 +1,24 @@
 import re
 from bs4 import BeautifulSoup
 from bs4.element import PageElement
-from typing import Any, List, Dict
+from typing import Any, List, Dict, Union
 from client import client
+from getsci import get_abstract_google
 
 db_list = ['aip', 'elsevier', 'iop', 'wiley']
 
 over_five_Wall_url = 'http://10.141.5.152:8191/v1'
 
-is_proxy = False
+is_proxy = True
 
-class abstract():
+class get_abstract():
     
     def __init__(self) -> None:
-        self.url: str = ''
+        self.url: str
+        self.text: str = None
     
-    def get(self, database: str, url: str, **kwargs) -> Any:
+    @classmethod
+    def get(cls, database: str, url: str, name: str, **kwargs) -> str:
         '''
         Get abstract
         
@@ -26,11 +29,12 @@ class abstract():
         '''
         for i in db_list:
             if re.match(i, database.lower()):
-                self.url = url
-                return getattr(self, i)
-        raise 
+                cls.url = url
+                cls.text = getattr(cls(), i)
+                return cls.text
+        return get_abstract_google(name)
     
-    def abstract_fromat(self, abstract: List[PageElement]) -> str:
+    def abstract_format(self, abstract: List[PageElement]) -> str:
         p_abstract = ''
         for i in abstract:
             if i.string:
@@ -54,7 +58,7 @@ class abstract():
             res = self.over_five_wall()
         else:
             res = self.soup()
-        print(res.contents)
+        #print(res.contents)
         abstract = res.find(
             name,
             {
@@ -62,9 +66,12 @@ class abstract():
             }
         ).contents
         
-        return self.abstract_fromat(abstract=abstract)
+        return self.abstract_format(abstract=abstract)
         
-    def over_five_wall(self):
+    def over_five_wall(self) -> BeautifulSoup:
+        '''
+        Use FlareSolverr/FlareSolverr
+        '''
         res = client.post(
             url=over_five_Wall_url, 
             json={
@@ -72,7 +79,8 @@ class abstract():
                     'url': self.url,
                     'session': 'five_wall',
                     'maxTimeout': 60000
-                    }
+                    },
+            proxy=is_proxy
             ).json()["solution"]["response"]
         return BeautifulSoup(res, features='html.parser')
     
@@ -98,14 +106,17 @@ class abstract():
         Database name: IOP
         Notice! Proxy forbiden
         '''
-        return self.abstract_find(attr_key='article-text wd-jnl-art-abstract cf')
+        #return self.abstract_find(attr_key='article-text wd-jnl-art-abstract cf')
+        return self.abstract_find(attr_key='article-text wd-jnl-art-abstract cf', is_cloud=True)
 
     @property
     def wiley(self):
         '''
         Database name: Wiley
+        Notice! Cloudflare Wall 
         '''
-        return self.abstract_find(attr_key='article-section__content en main', is_cloud=True)
+        return self.abstract_find(name='section', attr_key='article-section article-section__abstract', is_cloud=True)
 
 if __name__ == '__main__':
-    print(abstract().get('wiley.....', 'https://onlinelibrary.wiley.com/doi/full/10.1002/eahr.500120'))
+    ...
+    print(get_abstract().get('wiley.....', 'https://onlinelibrary.wiley.com/doi/full/10.1002/eahr.500120'))
