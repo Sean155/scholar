@@ -1,6 +1,7 @@
 from typing import Dict
 from get_abstract import get_abstract
 from google_translator import google_translator
+import time
 
 class abstrcat():
         
@@ -17,9 +18,9 @@ class abstrcat():
             except KeyError:
                 raise 'Wrong params'
             
-            self.en = get_abstract.get(database=database, url=url)
+            self.en = get_abstract.get(database=database, url=url, name=name)
             
-            self.ch = google_translator.trans(words=self.en) if len(self.en) > 50 else self.en
+            self.ch = google_translator.trans(words=self.en) if len(self.en) > 20 else self.en
 
 
 class artical(abstrcat):
@@ -27,19 +28,18 @@ class artical(abstrcat):
     Artical 类
     
     文章的基本属性：
-    Name, Doi, Url, Time, Journal, Database, Abstract...
+    Name, Url, Time, Journal, Database, Abstract...
     '''
     
     def __init__(self, params: Dict[str, str]):
             
         self.name: str = params['name']
-        self.doi: str = params['doi']
         self.url: str = params['url']
         self.time: str = params['time']
         self.journal: str = params['journal']
         self.database: str = params['database']
     
-    def get_abstract(self) -> 'artical':
+    def init(self) -> 'artical':
         self.get(params={
             'name': self.name,
             'database': self.database,
@@ -48,14 +48,15 @@ class artical(abstrcat):
         return self
 
 if __name__ == '__main__':
+    print(time.localtime())
     a = artical(params={
-        'name': 'test',
-        'doi': 'doi',
-        'url': 'url',
+        'name': 'name',
+        'url': 'https://onlinelibrary.wiley.com/doi/full/10.1002/er.5313',
         'time': 'time',
         'journal': 'journal',
-        'database': 'database'
-    }).get_abstract()
+        'database': 'Wiley Online Library'
+    }).init()
+    print(time.localtime())
     print(a.en, a.ch)
     
     
