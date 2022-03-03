@@ -1,14 +1,13 @@
 from httpx import Client, Response
 from typing import Dict
 
-
 class client():
     
     def __init__(self, proxy: bool = False) -> None:
         self.client = Client
         self.headers: Dict = {
-                "User-Agent": "User-Agent: Mozilla/5.0 (iPhone; CPU iPhone OS 14_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.1.1 Mobile/15E148 Safari/604.1",
-                "Accept-Language": "zh-cn",
+                "User-Agent": 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:98.0) Gecko/20100101 Firefox/98.0',
+                #"Accept-Language": "zh-cn",
                 "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
                 }
         self.proxies_: bool = proxy
@@ -33,7 +32,7 @@ class client():
             api = self.client(proxies=self.proxies, headers=self.headers)
         else:
             api = self.client(headers=self.headers)
-        res = api.get(url=url)
+        res = api.get(url=url, timeout=20)
         api.close()
         return res
 
