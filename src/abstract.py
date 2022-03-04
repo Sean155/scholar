@@ -2,9 +2,8 @@ import re
 from bs4 import BeautifulSoup
 from bs4.element import PageElement
 from typing import Any, List, Dict, Union
-from client import client, Response
+from utils import client, Response, str_replace, bs, bs_find
 
-s = client()
 
 db_list = ['aip', 'elsevier', 'iop', 'wiley']
 
@@ -18,11 +17,11 @@ class get_abstract():
         self.statu: bool = True
     
     
-    def get(self, database: str, name: str) -> 'get_abstract':
+    def get(self, database: str, tag: str) -> 'get_abstract':
         '''
         Get abstract
         
-        Database: Name of Inputed Database
+        Database: tag of Inputed Database
         Url: Link of Artical
         
         Notice! IOP Seems Proxy Forbiden!
@@ -31,10 +30,13 @@ class get_abstract():
             if re.match(i, database.lower()):
                 self.text = getattr(self, i)()
                 return self
-        self.text = get_abstract_google(name)
+        self.text = get_abstract_google(tag)
         return self
     
     def abstract_format(self, abstract: List[PageElement]) -> str:
+        '''
+        格式化摘要文本
+        '''
         p_abstract = ''
         for i in abstract:
             if i.string:
@@ -44,33 +46,29 @@ class get_abstract():
                 p_abstract = p_abstract + i.text
         return p_abstract
     
-    
-    def soup(self) -> BeautifulSoup:
-
-        return BeautifulSoup(client.get(self.url).content, features="html.parser")
-    
     def five_wall_check(self, res: Response) -> bool:
-        
+        '''
+        检测是否5s墙
+        '''
         if re.search('Please allow up to 5 seconds', res.text):
             return True
         return False
     
     def abstract_find(self, 
-                      name: str = 'div', 
-                      attr_name: str = 'class', 
-                      attr_key: str = ..., 
+                      tag: str = 'div', 
+                      attr_key: str = 'class', 
+                      attr_value: str = ..., 
                       is_cloud: bool = False) -> str:
+        '''
+        搜索摘要文本
+        '''
         if is_cloud:
             res = self.over_five_wall()
         else:
-            res = self.soup()
+            res = bs(self.url)
+            
         try:
-            abstract = res.find(
-                name,
-                {
-                    attr_name: attr_key
-                }
-            ).contents
+            abstract = bs_find(res, tag, attr_key, attr_value).contents
         except:
             self.statu = False
             if self.five_wall_check(res):
@@ -81,7 +79,7 @@ class get_abstract():
         
     def over_five_wall(self) -> BeautifulSoup:
         '''
-        Use FlareSolverr/FlareSolverr
+        Require FlareSolverr/FlareSolverr
         '''
         res = client.post(
             url=over_five_Wall_url, 
@@ -97,64 +95,54 @@ class get_abstract():
     
     def aip(self) -> str:
         '''
-        Database name: AIP
+        Database tag: AIP
         '''
         
-        return self.abstract_find(attr_key='NLM_paragraph')
+        return self.abstract_find(attr_value='NLM_paragraph')
 
     
     def elsevier(self) -> str:
         '''
-        Database name: Elsevier
+        Database tag: Elsevier
         '''
         
-        return self.abstract_find(attr_key='abstract author')
+        return self.abstract_find(attr_value='abstract author')
 
     
     def iop(self) -> str:
         '''
-        Database name: IOP
+        Database tag: IOP
         Notice! Proxy forbiden
         '''
-        #return self.abstract_find(attr_key='article-text wd-jnl-art-abstract cf')
-        return self.abstract_find(attr_key='article-text wd-jnl-art-abstract cf', is_cloud=True)
+        #return self.abstract_find(attr_value='article-text wd-jnl-art-abstract cf')
+        return self.abstract_find(attr_value='article-text wd-jnl-art-abstract cf', is_cloud=True)
 
     
     def wiley(self) -> str:
         '''
-        Database name: Wiley
+        Database tag: Wiley
         Notice! Cloudflare Wall 
         '''
-        return self.abstract_find(name='section', attr_key='article-section article-section__abstract', is_cloud=True)
+        return self.abstract_find(tag='section', attr_value='article-section article-section__abstract', is_cloud=True)
 
-def str_repalce(char_list: List[str], string: str, re_string: str) -> str:
-    '''
-    替换字符
-    '''
-    for i in char_list:
-        string = string.replace(i, re_string)
-    return string
 
-#获取摘要
 def get_abstract_google(artical_name: str) -> str:
     '''
-    从谷歌获取英文摘要
+    从谷歌学术获取英文摘要
     '''
-    artical_name = str_repalce([' '], artical_name, '+')
+    artical_name = str_replace([' '], artical_name, '+')
     artical_link = f'https://scholar.google.com/scholar?hl=zh-CN&as_sdt=0%2C5&q={artical_name}&btnG='
-    scholar_result_soup = BeautifulSoup(s.get(artical_link).content, features="html.parser")
-    abstract = scholar_result_soup.find(
-            'div',
-            {
-                'class': 'gs_rs',
-            }
-        )
+    scholar_result_soup = bs(artical_link)
+    
+    abstract = bs_find(scholar_result_soup, 'div', 'class', 'gs_rs').contents
+
     if not abstract:
-        raise
-    abstract=''.join(i.string for i in abstract.contents if i.string)
+        raise 
+    
+    abstract=''.join(i.string for i in abstract if i.string)
     
     return abstract
 
 if __name__ == '__main__':
     ...
-    print(get_abstract().get('wiley.....', 'https://onlinelibrary.wiley.com/doi/full/10.1002/eahr.500120', 'name'))
+    print(get_abstract().get('wiley.....', 'https://onlinelibrary.wiley.com/doi/full/10.1002/eahr.500120', 'tag'))
