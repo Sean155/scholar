@@ -2,23 +2,22 @@ import re
 from bs4 import BeautifulSoup
 from bs4.element import PageElement
 from typing import Any, List, Dict, Union
-from client import client
+from client import client, Response
 from getsci import get_abstract_google
 
 db_list = ['aip', 'elsevier', 'iop', 'wiley']
 
 over_five_Wall_url = 'http://10.141.5.152:8191/v1'
 
-is_proxy = True
-
 class get_abstract():
     
-    def __init__(self) -> None:
-        self.url: str
+    def __init__(self, url: str) -> None:
+        self.url: str = url
         self.text: str = None
+        self.statu: bool = True
     
-    @classmethod
-    def get(cls, database: str, url: str, name: str, **kwargs) -> str:
+    
+    def get(self, database: str, name: str) -> 'get_abstract':
         '''
         Get abstract
         
@@ -29,10 +28,10 @@ class get_abstract():
         '''
         for i in db_list:
             if re.match(i, database.lower()):
-                cls.url = url
-                cls.text = getattr(cls(), i)
-                return cls.text
-        return get_abstract_google(name)
+                self.text = getattr(self, i)()
+                return self
+        self.text = get_abstract_google(name)
+        return self
     
     def abstract_format(self, abstract: List[PageElement]) -> str:
         p_abstract = ''
@@ -46,8 +45,14 @@ class get_abstract():
     
     
     def soup(self) -> BeautifulSoup:
+
+        return BeautifulSoup(client.get(self.url).content, features="html.parser")
+    
+    def five_wall_check(self, res: Response) -> bool:
         
-        return BeautifulSoup(client.get(self.url, proxy=is_proxy).content, features="html.parser")
+        if re.search('Please allow up to 5 seconds', res.text):
+            return True
+        return False
     
     def abstract_find(self, 
                       name: str = 'div', 
@@ -58,15 +63,20 @@ class get_abstract():
             res = self.over_five_wall()
         else:
             res = self.soup()
-        #print(res.contents)
-        abstract = res.find(
-            name,
-            {
-                attr_name: attr_key
-            }
-        ).contents
-        
-        return self.abstract_format(abstract=abstract)
+        try:
+            abstract = res.find(
+                name,
+                {
+                    attr_name: attr_key
+                }
+            ).contents
+        except:
+            self.statu = False
+            if self.five_wall_check(res):
+                return f'Get abstract failed! \nThis website has Cloudflare defender, please change the access way.\n{self.url}'
+            return f'Get abstract failed, please check tags of the website: {self.url}'
+        else:
+            return self.abstract_format(abstract=abstract)
         
     def over_five_wall(self) -> BeautifulSoup:
         '''
@@ -79,12 +89,11 @@ class get_abstract():
                     'url': self.url,
                     'session': 'five_wall',
                     'maxTimeout': 60000
-                    },
-            proxy=is_proxy
+                    }
             ).json()["solution"]["response"]
         return BeautifulSoup(res, features='html.parser')
     
-    @property
+    
     def aip(self) -> str:
         '''
         Database name: AIP
@@ -92,7 +101,7 @@ class get_abstract():
         
         return self.abstract_find(attr_key='NLM_paragraph')
 
-    @property
+    
     def elsevier(self) -> str:
         '''
         Database name: Elsevier
@@ -100,8 +109,8 @@ class get_abstract():
         
         return self.abstract_find(attr_key='abstract author')
 
-    @property
-    def iop(self):
+    
+    def iop(self) -> str:
         '''
         Database name: IOP
         Notice! Proxy forbiden
@@ -109,8 +118,8 @@ class get_abstract():
         #return self.abstract_find(attr_key='article-text wd-jnl-art-abstract cf')
         return self.abstract_find(attr_key='article-text wd-jnl-art-abstract cf', is_cloud=True)
 
-    @property
-    def wiley(self):
+    
+    def wiley(self) -> str:
         '''
         Database name: Wiley
         Notice! Cloudflare Wall 
@@ -119,4 +128,4 @@ class get_abstract():
 
 if __name__ == '__main__':
     ...
-    print(get_abstract().get('wiley.....', 'https://onlinelibrary.wiley.com/doi/full/10.1002/eahr.500120'))
+    print(get_abstract().get('wiley.....', 'https://onlinelibrary.wiley.com/doi/full/10.1002/eahr.500120', 'name'))
