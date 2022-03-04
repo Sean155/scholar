@@ -35,7 +35,7 @@ def google_scholar(key_words: str, artical_page: str) -> List[Artical]:
                     'data-rp': i
                 }
             )
-        artical_time=artical_info.find(
+        artical_time = artical_info.find(
                 'div',
                 {
                     'class': 'gs_a'
@@ -48,7 +48,14 @@ def google_scholar(key_words: str, artical_page: str) -> List[Artical]:
                     'class': 'gs_ri'
                 }
             )
-
+        search_result_nums = artical_info.find(
+                'div', 
+                {
+                    'class': 'gs_ab_mdw'
+                }
+            ).contents
+        search_result_nums = re.compile(r'约\s(.*)\s条').search(search_result_nums)
+        search_result_nums = int(str_repalce([','], search_result_nums, ''))
         artical_info = artical_info.find('a')
         name_list = artical_info.contents
         name = ''.join(i.string for i in name_list)
@@ -58,7 +65,7 @@ def google_scholar(key_words: str, artical_page: str) -> List[Artical]:
         info['name'] = name
         info['url'] = artical_info.attrs["href"]
         artical.append(get_artical(info))   
-    return artical
+    return artical, search_result_nums
    
 
 def get_base_info(string: str) -> Dict:
