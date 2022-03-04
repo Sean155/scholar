@@ -3,7 +3,8 @@ from bs4 import BeautifulSoup
 from bs4.element import PageElement
 from typing import Any, List, Dict, Union
 from client import client, Response
-from getsci import get_abstract_google
+
+s = client()
 
 db_list = ['aip', 'elsevier', 'iop', 'wiley']
 
@@ -125,6 +126,34 @@ class get_abstract():
         Notice! Cloudflare Wall 
         '''
         return self.abstract_find(name='section', attr_key='article-section article-section__abstract', is_cloud=True)
+
+def str_repalce(char_list: List[str], string: str, re_string: str) -> str:
+    '''
+    替换字符
+    '''
+    for i in char_list:
+        string = string.replace(i, re_string)
+    return string
+
+#获取摘要
+def get_abstract_google(artical_name: str) -> str:
+    '''
+    从谷歌获取英文摘要
+    '''
+    artical_name = str_repalce([' '], artical_name, '+')
+    artical_link = f'https://scholar.google.com/scholar?hl=zh-CN&as_sdt=0%2C5&q={artical_name}&btnG='
+    scholar_result_soup = BeautifulSoup(s.get(artical_link).content, features="html.parser")
+    abstract = scholar_result_soup.find(
+            'div',
+            {
+                'class': 'gs_rs',
+            }
+        )
+    if not abstract:
+        raise
+    abstract=''.join(i.string for i in abstract.contents if i.string)
+    
+    return abstract
 
 if __name__ == '__main__':
     ...
