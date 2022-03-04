@@ -6,14 +6,15 @@ import time
 
 class Artical(BaseModel):
     '''
-    ArticalBase 类
+    Artical 类
     
     文章的基本属性：
-    Name, Url, Time, Journal, Database...
+    Author, Name, Url, Time, Journal, Database...
     '''
+    author: str
     name: str
     url: str
-    time: str
+    year: str
     journal: str
     database: str
 
@@ -36,10 +37,11 @@ def get_artical(params: Dict[str, str]) -> 'Artical':
     
     params:
     {
-        'name': value
-        'url': value
-        'time': value
-        'journal': value
+        'author': value,
+        'name': value, 
+        'url': value, 
+        'year': value, 
+        'journal': value, 
         'database': value
     }
     '''
