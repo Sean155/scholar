@@ -1,64 +1,65 @@
-from typing import Dict
+from typing import Dict, Tuple
+from pydantic import BaseModel, ValidationError
 from get_abstract import get_abstract
 from google_translator import google_translator
-import time
+import time 
 
-class abstrcat():
-        
-        def __init__(self):
-            self.en: str = ''
-            self.ch: str = ''
-            
-        def get(self, params: Dict[str, str]) -> None:
-            
-            try:
-                name = params['name']
-                database = params['database']
-                url = params['url']
-            except KeyError:
-                raise 'Wrong params'
-            
-            self.en = get_abstract.get(database=database, url=url, name=name)
-            
-            self.ch = google_translator.trans(words=self.en) if len(self.en) > 20 else self.en
-
-
-class artical(abstrcat):
+class Artical(BaseModel):
     '''
-    Artical 类
+    ArticalBase 类
     
     文章的基本属性：
-    Name, Url, Time, Journal, Database, Abstract...
+    Name, Url, Time, Journal, Database...
+    '''
+    name: str
+    url: str
+    time: str
+    journal: str
+    database: str
+
+    def abstract(self) -> Tuple[str, str]:
+        '''
+        获取摘要并翻译
+        '''
+        abstract_res = get_abstract(url=self.url).get(database=self.database, name=self.name)
+        en = abstract_res.text
+        
+        if abstract_res.statu:
+            ch = google_translator.trans(words=en)
+        else:
+            ch = en
+        return en, ch
+
+def get_artical(params: Dict[str, str]) -> 'Artical':
+    '''
+    初始化 Artical 类
+    
+    params:
+    {
+        'name': value
+        'url': value
+        'time': value
+        'journal': value
+        'database': value
+    }
     '''
     
-    def __init__(self, params: Dict[str, str]):
-            
-        self.name: str = params['name']
-        self.url: str = params['url']
-        self.time: str = params['time']
-        self.journal: str = params['journal']
-        self.database: str = params['database']
-    
-    def init(self) -> 'artical':
-        self.get(params={
-            'name': self.name,
-            'database': self.database,
-            'url': self.url
-        })
-        return self
+    try:
+        return Artical.parse_obj(params)
+    except ValidationError as e:
+        print(f'Wrong params:{params}')
+        print(f'{e.errors()}')
+    raise ValueError('Falied to initalize class Artical')
 
 if __name__ == '__main__':
     print(time.localtime())
-    a = artical(params={
-        'name': 'name',
+    a = get_artical({
+        'name': 'name1',
         'url': 'https://onlinelibrary.wiley.com/doi/full/10.1002/er.5313',
-        'time': 'time',
-        'journal': 'journal',
+        'time': 'time1',
+        'journal': 'journal1',
         'database': 'Wiley Online Library'
-    }).init()
+    })
+    en, ch = a.abstract()
     print(time.localtime())
-    print(a.en, a.ch)
-    
-    
-        
-        
+    print(en, ch)
