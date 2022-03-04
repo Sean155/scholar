@@ -1,13 +1,12 @@
-import requests
 from bs4 import BeautifulSoup
 from client import client
 import time
-from typing import List, Tuple, Any
+from typing import List, Tuple, Dict
 import re
-from google_translator import google_translator
+from artical import get_artical, Artical
 
 
-s = client(proxy=True)
+s = client()
 
 
 def str_repalce(char_list: List[str], string: str, re_string: str) -> str:
@@ -19,32 +18,70 @@ def str_repalce(char_list: List[str], string: str, re_string: str) -> str:
     return string
 
 
-def google_scholar(key_words: str, artical_num: str) -> Tuple[str, str]:
+def google_scholar(key_words: str, artical_page: str) -> List[Artical]:
     '''
-    获取文献名称和链接
+    获取文献名称和链接,time,journal,database
     '''
     #key_words = 'thermoelectric+and+Cu2Se+-film'
-    scholar_link = f'https://scholar.google.com/scholar?start={artical_num}&q={key_words}&hl=zh-CN&as_sdt=0,5'
-    scholar_result_soup = BeautifulSoup(s._get(scholar_link).content, features="html.parser")
-    artical_info = scholar_result_soup.find(
-            'div', 
-            {
-                'class': 'gs_r gs_or gs_scl', 
-                'data-rp': artical_num
-            }
-        )
-    artical_info = artical_info.find(
-            'div', 
-            {
-                'class': 'gs_ri'
-            }
-        )
-    artical_info = artical_info.find('a')
-    name_list = artical_info.contents
-    name = ''.join(i.string for i in name_list)
-    name = str_repalce(['/', '\\', ':', '*', '"', '?', '>', '<', '|'], name,'_')
-    return name, artical_info.attrs["href"]
+    artical: List[Artical] = []
+    artical_num = (int(artical_page)-1)*20
+    scholar_link = f'https://scholar.google.com/scholar?start={artical_page}&q={key_words}&hl=zh-CN&num=20&as_sdt=0,5'
+    scholar_result_soup = BeautifulSoup(s.get(scholar_link).content, features="html.parser")
+    for i in range(artical_num,artical_num+20):
+        artical_info = scholar_result_soup.find(
+                'div', 
+                {
+                    'class': 'gs_r gs_or gs_scl', 
+                    'data-rp': i
+                }
+            )
+        artical_time=artical_info.find(
+                'div',
+                {
+                    'class': 'gs_a'
+                }
+            ).contents
 
+        artical_info = artical_info.find(
+                'div', 
+                {
+                    'class': 'gs_ri'
+                }
+            )
+
+        artical_info = artical_info.find('a')
+        name_list = artical_info.contents
+        name = ''.join(i.string for i in name_list)
+        name = str_repalce(['/', '\\', ':', '*', '"', '?', '>', '<', '|'], name,'_')
+        artical_time = ''.join(i.string for i in artical_time)
+        info = get_base_info(artical_time)
+        info['name'] = name
+        info['url'] = artical_info.attrs["href"]
+        artical.append(get_artical(info))   
+    return artical
+   
+
+def get_base_info(string: str) -> Dict:
+
+    get_partern = re.compile(r'(.*)\s-\s(.*)\s-\s(.*)')
+    print(string)
+    res = get_partern.search(string)
+    author = res[1]
+    year = res[2]
+    database = res[3]
+    if re.search(',', year):
+        get_p = re.compile(r'(.*),\s(.*)')
+        res_p = get_p.search(year)
+        journal = res_p[1]
+        year = res_p[2]
+    else:
+        journal = 'book'
+    return {
+        'author': author,
+        'year': year,
+        'journal': journal,
+        'database': database
+    }
 
 #获取sci_hub下载链接
 def get_dl_link(artical_link: str) -> Tuple[bool, str]:
@@ -65,42 +102,11 @@ def get_dl_link(artical_link: str) -> Tuple[bool, str]:
     if re.search(r'sci-hub', loc):
         dl_link = 'https:' + pattern.search(loc)[1]
     else:
-        dl_link = 'https://sci-hub.se' + pattern.search(loc)[1]
-        
-    """ 
-    try:
-        _ = loc.index('sci-hub')
-        a = loc.index("'")
-        b = loc.index("'", a + 1)
-        dl_link = 'https:' + loc[a + 1:b]
-    except ValueError:
-        a = loc.index("'")
-        b = loc.index("'", a + 1)
-        dl_link = 'https://sci-hub.se' + loc[a+1:b] 
-    """
-        
+        dl_link = 'https://sci-hub.se' + pattern.search(loc)[1]              
     return True, dl_link
 
 
-#获取摘要
-def get_abstract_google(artical_name: str) -> str:
-    '''
-    从谷歌获取英文摘要
-    '''
-    artical_name = str_repalce([' '], artical_name, '+')
-    artical_link = f'https://scholar.google.com/scholar?hl=zh-CN&as_sdt=0%2C5&q={artical_name}&btnG='
-    scholar_result_soup = BeautifulSoup(s._get(artical_link).content, features="html.parser")
-    abstract = scholar_result_soup.find(
-            'div',
-            {
-                'class': 'gs_rs',
-            }
-        )
-    if not abstract:
-        raise
-    abstract=''.join(i.string for i in abstract.contents if i.string)
-    
-    return abstract
+
 
 #储存文件
 def save_file(link: str, name: str) -> None:
@@ -119,11 +125,9 @@ def save_file(link: str, name: str) -> None:
 
 
 if __name__ == '__main__':
-    start_num = 0
-    for i in range(0, 2):
-        artical_num = str(start_num + i)
-        name, url = google_scholar('thermal', artical_num)
-        #save_file(url, name)
-        #get_abstract(name)
-        print(name)
-        time.sleep(10)
+    a = google_scholar('thermal', 3)
+    en, ch = a[0].abstract()
+    print(en, ch)
+    
+
+
