@@ -1,7 +1,6 @@
 from client import client
 from typing import Dict, List
 
-is_proxy = True
 
 class google_translator():
 
@@ -47,10 +46,10 @@ class google_translator():
         if len(words) > 4000:
             return 'Too long to trans'
         url=self.api_url.format(self.s_lan(s_), self.t_lan(t_), words)
-        trans_result = client.get(url=url, proxy=is_proxy)
-        if trans_result.json():
+        trans_result = client.get(url=url)
+        try:
             return self._json(trans_result.json())
-        else:
+        except:
             return trans_result.text
         
 
