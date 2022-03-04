@@ -1,6 +1,6 @@
 from typing import Dict, Tuple
 from pydantic import BaseModel, ValidationError
-from get_abstract import get_abstract
+from abstract import get_abstract
 from google_translator import google_translator
 import time 
 
@@ -35,8 +35,8 @@ def get_artical(params: Dict[str, str]) -> 'Artical':
     '''
     初始化 Artical 类
     
-    params:
-    {
+    params = {
+        
         'author': value,
         'name': value, 
         'url': value, 
