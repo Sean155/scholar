@@ -17,7 +17,9 @@ class Artical(BaseModel):
     year: str
     journal: str
     database: str
-
+    statu: bool
+    text: str
+    
     def abstract(self) -> Tuple[str, str]:
         '''
         获取摘要并翻译
