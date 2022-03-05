@@ -10,7 +10,7 @@ class client():
     def __init__(self):
 
         self.headers: Dict = {
-                "User-Agent": 'Mozilla/5.0 (iPhone; CPU iPhone OS 14_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.1.1 Mobile/15E148 Safari/604.1',
+                "User-Agent": 'Mozilla/5.0 (iPhone; CPU iPhone OS 15_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.1.1 Mobile/15E148 Safari/604.1',
                 "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
                 }
         self.proxies: str = "http://127.0.0.1:7890"
@@ -68,7 +68,9 @@ def bs_find(bs: T,
             ) -> Union[Tag, NavigableString, None]:
     
     if isinstance(attr_key, List) and isinstance(attr_value, List):
-        attr = {k: v for k in attr_key for v in attr_value}
+        attr = {}
+        for i in range(len(attr_key)):
+            attr[attr_key[i]] = attr_value[i]
     elif isinstance(attr_key, str) and isinstance(attr_value, str):
         attr = {attr_key: attr_value}
     else:
