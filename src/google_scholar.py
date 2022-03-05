@@ -38,14 +38,14 @@ class Scholar():
         key_words = str_replace([' '], key_words, '+')
         scholar_link = f'https://scholar.google.com/scholar?start={artical_num}&q={key_words}&hl=zh-CN&as_sdt=0,5' 
         #https://xs2.dailyheadlines.cc/scholar?start={artical_num}&q={key_words}&hl=zh-CN&as_sdt=0,5
-        #https://scholar.google.com/scholar?start=20&q=thermoelectric&hl=zh-CN&as_sdt=0,5
+        #https://scholar.google.com/scholar?start={artical_num}&q={key_words}&hl=zh-CN&as_sdt=0,5
+        #https://scholar.lanfanshu.cn/
+        #https://xs.dailyheadlines.cc/
         scholar_result_soup = bs(scholar_link)
         
-        try:
-            bs_find(scholar_result_soup, 'div', 'class', 'gs_res_ccl')
-        except:
+        if not bs_find(scholar_result_soup, 'div', 'id', 'gs_res_ccl'):
             self.statu = False
-            self.text = 'Failed to get results from google scholar, please check the Internet.'
+            self.text = f'Failed to get results from google scholar, please check the Internet.:\n{scholar_result_soup.text}'
             return self
         
         self.search_result_nums = self.get_result_nums(scholar_result_soup)
@@ -53,7 +53,13 @@ class Scholar():
         for i in range(artical_num, artical_num + 10):
             artical_info_all = bs_find(scholar_result_soup, 'div', ['class', 'data-rp'], ['gs_r gs_or gs_scl', i])
             info = self.get_artical_base_info(artical_info_all)
-            info['name'], info['url'] = self.get_artical_name_url(artical_info_all)    
+            
+            name, url, statu, text = self.get_artical_name_url(artical_info_all)
+            info['name'] = name
+            info['url'] = url
+            info['text'] += text
+            info['statu'] = statu if info['statu'] else False
+
             self.artical.append(get_artical(info))
             
         return self
@@ -92,19 +98,22 @@ class Scholar():
         '''
         获取文章标题、链接
         '''        
-        artical_name = bs_find(artical_info_all, 'div', 'class', 'gs_ri')
-        artical_name = artical_name.find('a')
+        artical_name = bs_find(artical_info_all, 'h3', 'class', 'gs_rt')
+        
         name = artical_name.text
         #name = ''.join(i.string for i in artical_name.contents if i)
         name = str_replace(['/', '\\', ':', '*', '"', '?', '>', '<', '|'], name,'_')
-
+        name = str_replace(['[图书][B] ', '[引用][C] '], name,'')
+        artical_url = artical_name.find('a')
         try:
-            url = artical_name.attrs["href"]
+            url = artical_url.attrs["href"]
+            statu = True
+            text = ''
         except:
-            self.statu = False
-            self.text += f'Failed to get url: {name}'
+            statu = False
+            text = f'Failed to get url: {name}\n'
             url = 'None'
-        return name, url
+        return name, url, statu, text
     
     def format_base_info(self, string: str) -> Dict:
         '''
@@ -114,13 +123,13 @@ class Scholar():
 
         res = partern.search(string)
         if not res:
-            self.statu = False
-            self.text = f'Failed to get base info: {string}\n'
             return {
                 'author': 'None',
                 'year': 'None',
                 'journal': 'None',
-                'database': 'None'
+                'database': 'None',
+                'statu': False,
+                'text': f'Failed to get base info: {string}\n'
             }
         author = res[1]
         year = res[2]
@@ -136,7 +145,9 @@ class Scholar():
             'author': author,
             'year': year,
             'journal': journal,
-            'database': database
+            'database': database,
+            'statu': True,
+            'text': ''
         }
 
 
@@ -147,7 +158,8 @@ def get_scholar(key_words: str, search_page: str) -> 'Scholar':
     return Scholar().search_results(key_words, search_page)
 
 if __name__ == '__main__':
-    a = get_scholar('fluent', 1)
-    en, ch = a.artical[0].abstract()
-    nums = a.search_result_nums
-    print(en, ch)
+    a = get_scholar('thermal', 2)
+    #en, ch = a.artical[0].abstract()
+    #nums = a.search_result_nums
+    pass
+    #print(en, ch)
