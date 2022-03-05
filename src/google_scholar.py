@@ -32,13 +32,13 @@ class Scholar():
         '''
         获取搜索结果
         
-        返回一页（20条）结果
+        返回一页（10条）结果
         '''
-        artical_num = (int(search_page)-1)*20
+        artical_num = (int(search_page)-1)*10
         key_words = str_replace([' '], key_words, '+')
-        scholar_link = f'https://scholar.google.com/scholar?start={search_page}&q={key_words}&hl=zh-CN&num=20&as_sdt=0,5'
-        
-        
+        scholar_link = f'https://scholar.google.com/scholar?start={artical_num}&q={key_words}&hl=zh-CN&as_sdt=0,5' 
+        #https://xs2.dailyheadlines.cc/scholar?start={artical_num}&q={key_words}&hl=zh-CN&as_sdt=0,5
+        #https://scholar.google.com/scholar?start=20&q=thermoelectric&hl=zh-CN&as_sdt=0,5
         scholar_result_soup = bs(scholar_link)
         
         try:
@@ -50,12 +50,10 @@ class Scholar():
         
         self.search_result_nums = self.get_result_nums(scholar_result_soup)
         
-        for i in range(artical_num, artical_num + 20):
+        for i in range(artical_num, artical_num + 10):
             artical_info_all = bs_find(scholar_result_soup, 'div', ['class', 'data-rp'], ['gs_r gs_or gs_scl', i])
-            
             info = self.get_artical_base_info(artical_info_all)
-            info['name'], info['url'] = self.get_artical_name_url(artical_info_all)
-            
+            info['name'], info['url'] = self.get_artical_name_url(artical_info_all)    
             self.artical.append(get_artical(info))
             
         return self
@@ -68,7 +66,7 @@ class Scholar():
         作者、年份、期刊、数据库
         '''
         artical_time = bs_find(artical_info_all, 'div', 'class', 'gs_a').contents
-        artical_time = ''.join(i.string for i in artical_time)
+        artical_time = ''.join(i.string for i in artical_time if i)
         
         return self.format_base_info(artical_time)
             
@@ -76,13 +74,19 @@ class Scholar():
         '''
         获取搜索结果条目数
         '''
-        try:
-            search_result_nums = bs_find(scholar_result_soup, 'div', 'class', 'gs_ab_mdw').contents
-            search_result_nums = re.compile(r'约\s(.*)\s条').search(search_result_nums)
-        except:
-            return 1
+        search_result_nums = bs_find(scholar_result_soup, 'div', 'id', 'gs_ab')
         
-        return int(str_replace([','], search_result_nums, ''))
+        try:
+            search_result_nums = bs_find(search_result_nums, 'div', 'id', 'gs_ab_md')
+            search_result_nums = bs_find(search_result_nums, 'div', 'class', 'gs_ab_mdw')
+            search_result_nums = search_result_nums.contents
+        except AttributeError:
+            return 1
+        else:
+            search_result_nums = ''.join(i.string for i in search_result_nums if i)
+            search_result_nums = re.compile(r'约\s(.*)\s条').search(search_result_nums)
+        
+        return int(str_replace([','], search_result_nums[1], ''))
     
     def get_artical_name_url(self, artical_info_all: T) -> Tuple[str, str]:
         '''
@@ -90,19 +94,34 @@ class Scholar():
         '''        
         artical_name = bs_find(artical_info_all, 'div', 'class', 'gs_ri')
         artical_name = artical_name.find('a')
-        name = ''.join(i.string for i in artical_name.contents)
+        name = artical_name.text
+        #name = ''.join(i.string for i in artical_name.contents if i)
         name = str_replace(['/', '\\', ':', '*', '"', '?', '>', '<', '|'], name,'_')
-        url = artical_name.attrs["href"]
-        
+
+        try:
+            url = artical_name.attrs["href"]
+        except:
+            self.statu = False
+            self.text += f'Failed to get url: {name}'
+            url = 'None'
         return name, url
     
-    def format_base_info(string: str) -> Dict:
+    def format_base_info(self, string: str) -> Dict:
         '''
         格式化文章基本属性
         '''
         partern = re.compile(r'(.*)\s-\s(.*)\s-\s(.*)')
 
         res = partern.search(string)
+        if not res:
+            self.statu = False
+            self.text = f'Failed to get base info: {string}\n'
+            return {
+                'author': 'None',
+                'year': 'None',
+                'journal': 'None',
+                'database': 'None'
+            }
         author = res[1]
         year = res[2]
         database = res[3]
@@ -128,7 +147,7 @@ def get_scholar(key_words: str, search_page: str) -> 'Scholar':
     return Scholar().search_results(key_words, search_page)
 
 if __name__ == '__main__':
-    a = get_scholar('thermal', 3)
+    a = get_scholar('fluent', 1)
     en, ch = a.artical[0].abstract()
     nums = a.search_result_nums
     print(en, ch)
