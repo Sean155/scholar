@@ -22,7 +22,7 @@ class Artical(BaseModel):
         '''
         获取摘要并翻译
         '''
-        abstract_res = get_abstract(url=self.url).get(database=self.database, name=self.name)
+        abstract_res = get_abstract(url=self.url).get(database=self.database, tag=self.name)
         en = abstract_res.text
         
         if abstract_res.statu:
@@ -56,7 +56,7 @@ def get_artical(params: Dict[str, str]) -> 'Artical':
 if __name__ == '__main__':
     print(time.localtime())
     a = get_artical({
-        'name': 'name1',
+        'name1': 'name1',
         'url': 'https://onlinelibrary.wiley.com/doi/full/10.1002/er.5313',
         'time': 'time1',
         'journal': 'journal1',
