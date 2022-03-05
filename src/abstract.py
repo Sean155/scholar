@@ -39,11 +39,12 @@ class get_abstract():
         '''
         p_abstract = ''
         for i in abstract:
-            if i.string:
-                if not re.match('Abstract', i.string):
-                    p_abstract = p_abstract + i.string
-            elif i.text:
-                p_abstract = p_abstract + i.text
+            if i:
+                if i.string:
+                    if not re.match('Abstract', i.string):
+                        p_abstract = p_abstract + i.string
+                elif i.text:
+                    p_abstract = p_abstract + i.text
         return p_abstract
     
     def five_wall_check(self, res: Response) -> bool:
