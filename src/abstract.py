@@ -1,4 +1,5 @@
 import re
+import time
 from bs4 import BeautifulSoup
 from bs4.element import PageElement
 from typing import Any, List, Dict, Union
@@ -30,7 +31,14 @@ class get_abstract():
             if re.match(i, database.lower()):
                 self.text = getattr(self, i)()
                 return self
-        self.text = get_abstract_google(tag)
+        try:
+            self.text = get_abstract_google(tag)
+        except:
+            try:
+                self.text = get_abstract_baidu(tag)
+            except:
+                self.statu = False
+                self.text = f'Failed to get abstract from google scholar, baidu scholar.'
         return self
     
     def abstract_format(self, abstract: List[PageElement]) -> str:
@@ -143,6 +151,21 @@ def get_abstract_google(artical_name: str) -> str:
     abstract=''.join(i.string for i in abstract if i.string)
     
     return abstract
+
+def get_abstract_baidu(name: str) -> str:
+    '''
+    从百度学术获取摘要
+    '''
+    name = str_replace([' '], name, '+')
+    a = bs(f'https://xueshu.baidu.com/s?wd={name}')
+    b = a.find('head').find('script').string
+
+    p = re.compile(r"\('//(.*)'\);}").search(b)[1]
+    time.sleep(3)
+    c = bs('https://' + p)
+    d = bs_find(c, 'p', 'class', 'abstract')
+    return d.string
+
 
 if __name__ == '__main__':
     ...
