@@ -1,6 +1,6 @@
 from bs4 import BeautifulSoup
 from utils import bs_find, str_replace, bs, T
-from typing import List, Tuple, Dict
+from typing import List, Tuple, Dict, Union
 import re
 from artical import get_artical, Artical
 
@@ -93,7 +93,7 @@ class Scholar():
         
         return int(str_replace([','], search_result_nums[1], ''))
     
-    def get_artical_name_url(self, artical_info_all: T) -> Tuple[str, str]:
+    def get_artical_name_url(self, artical_info_all: T) -> Tuple[str, Union[str, None], bool, str]:
         '''
         获取文章标题、链接
         '''        
@@ -111,7 +111,7 @@ class Scholar():
         except:
             statu = False
             text = f'Failed to get url: {name}\n'
-            url = 'None'
+            url = None
         return name, url, statu, text
     
     def format_base_info(self, string: str) -> Dict:
