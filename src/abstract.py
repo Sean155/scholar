@@ -18,12 +18,13 @@ class get_abstract():
         self.statu: bool = True
     
     
-    def get(self, database: str, tag: str) -> 'get_abstract':
+    def get(self, database: str, name: str, year: str) -> 'get_abstract':
         '''
         Get abstract
         
-        Database: tag of Inputed Database
-        Url: Link of Artical
+        Database: name of Inputed Database
+        Name: name of artical
+        Year: year of artical
         
         Notice! IOP Seems Proxy Forbiden!
         '''
@@ -32,10 +33,10 @@ class get_abstract():
                 self.text = getattr(self, i)()
                 return self
         try:
-            self.text = get_abstract_baidu(tag) + 'BD'
+            self.text = get_abstract_baidu(name+' '+year) + 'BD'
         except:
             try:
-                self.text = get_abstract_google(tag) + 'GG'
+                self.text = get_abstract_google(name+' '+year) + 'GG'
             except:
                 self.statu = False
                 self.text = f'Failed to get abstract from google scholar, baidu scholar.'
