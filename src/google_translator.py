@@ -1,4 +1,4 @@
-from client import client
+from utils import client
 from typing import Dict, List
 
 

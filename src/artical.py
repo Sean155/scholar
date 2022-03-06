@@ -1,46 +1,59 @@
 from typing import Dict, Tuple
 from pydantic import BaseModel, ValidationError
-from get_abstract import get_abstract
+from abstract import get_abstract
 from google_translator import google_translator
 import time 
 
 class Artical(BaseModel):
     '''
-    ArticalBase 类
+    Artical 类
     
     文章的基本属性：
-    Name, Url, Time, Journal, Database...
+    Author, Name, Url, Time, Journal, Database...
+    
+    statu: 若为False则表示获取基本属性失败
+    
+    text: 获取基本属性失败时反馈内容
     '''
+    author: str
     name: str
     url: str
-    time: str
+    year: str
     journal: str
     database: str
-
+    statu: bool
+    text: str
+    
     def abstract(self) -> Tuple[str, str]:
         '''
         获取摘要并翻译
         '''
-        abstract_res = get_abstract(url=self.url).get(database=self.database, name=self.name)
-        en = abstract_res.text
+        if not self.statu:
+            return self.text, self.text
+        
+        abstract_res = get_abstract(self.url).get(self.database, self.name, self.year)
+        en = abstract_res.text 
         
         if abstract_res.statu:
-            ch = google_translator.trans(words=en)
+            ch = google_translator.trans(words=en) + f'\nurl: {self.url}'
         else:
-            ch = en
+            ch = en + f'\nurl: {self.url}'
         return en, ch
 
 def get_artical(params: Dict[str, str]) -> 'Artical':
     '''
     初始化 Artical 类
     
-    params:
-    {
-        'name': value
-        'url': value
-        'time': value
-        'journal': value
-        'database': value
+    params = {
+        
+        'author': value,
+        'name': value, 
+        'url': value, 
+        'year': value, 
+        'journal': value, 
+        'database': value,
+        'statu': True | False,
+        'text': value
     }
     '''
     
@@ -54,11 +67,13 @@ def get_artical(params: Dict[str, str]) -> 'Artical':
 if __name__ == '__main__':
     print(time.localtime())
     a = get_artical({
-        'name': 'name1',
+        'name1': 'name1',
         'url': 'https://onlinelibrary.wiley.com/doi/full/10.1002/er.5313',
         'time': 'time1',
         'journal': 'journal1',
-        'database': 'Wiley Online Library'
+        'database': 'Wiley Online Library',
+        'statu': True,
+        'text': ''
     })
     en, ch = a.abstract()
     print(time.localtime())
