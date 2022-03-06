@@ -5,16 +5,16 @@ import sys
 import time
 from typing import List, Tuple
 from PyQt5 import QtCore, QtGui, QtWidgets
-from sqlalchemy import false
 from google_scholar import get_scholar, Scholar
 from google_translator import google_translator
 from mainwindow import *
+from utils import save_file
 
 class main_w2(QMainWindow, Ui_MainWindow):
     def __init__(self):
         super().__init__()
         self.setupUi(self)
-        self.download.clicked.connect(self.Download)
+        self.download.clicked.connect(lambda :self.Download(self.num_gui.toPlainText()))
         self.search.clicked.connect(lambda :self.Search(self.keyword1.toPlainText()))
         self.up.clicked.connect(lambda :self.Up(self.keyword1.toPlainText(),self.num_gui.toPlainText()))
         self.next.clicked.connect(lambda :self.Next(self.keyword1.toPlainText(),self.num_gui.toPlainText()))
@@ -68,11 +68,12 @@ class main_w2(QMainWindow, Ui_MainWindow):
         self.author_gui.setPlainText(a.author)
 
 
-    def Download(self):
+    def Download(self, artical_num: str):
         '''
         定义下载按钮
         '''
-       a = self.artical_datebase[artical_num][0]
+        artical_num = int(artical_num)
+        a = self.artical_datebase[artical_num][0]
         name = a.name
         fname, _ = QFileDialog.getSaveFileName(self, 'save file', name)
         saved = save_file(a.url, fname)
