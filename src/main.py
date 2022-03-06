@@ -72,16 +72,14 @@ class main_w2(QMainWindow, Ui_MainWindow):
         '''
         定义下载按钮
         '''
-        self.msg()
-        self.download.setCheckable(True)
-        print("download")
-        for i in range(10):
-            for j in range(11):
-                self.progressBar.setValue(i*10+j)
-                
-            time.sleep(1)
-            print("download")
-        pass
+       a = self.artical_datebase[artical_num][0]
+        name = a.name
+        fname, _ = QFileDialog.getSaveFileName(self, 'save file', name)
+        saved = save_file(a.url, fname)
+        if saved:
+            print("download successful")
+        else:
+            print("download failed")
 
 
     def Search(self, key_words: str) -> None:
@@ -163,7 +161,6 @@ class main_w2(QMainWindow, Ui_MainWindow):
 
     def msg(self):
         reply = QMessageBox.about(self,'提示','Waiting for loading abstract')
-        print(reply)
 
 
 #导入数据库,并存为data
