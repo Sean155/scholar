@@ -36,8 +36,8 @@ class Scholar():
         '''
         artical_num = (int(artical_num)-1)
         key_words = str_replace([' '], key_words, '+')
-        scholar_link = f'https://xs2.dailyheadlines.cc/scholar?start={artical_num}&q={key_words}&hl=zh-CN&as_sdt=0,5' 
-        #谷歌学术镜像不走代理https://xs2.dailyheadlines.cc/scholar?start={artical_num}&q={key_words}&hl=zh-CN&as_sdt=0,5
+        scholar_link = f'https://scholar.google.com/scholar?start={artical_num}&q={key_words}&hl=zh-CN&as_sdt=0,5' 
+        #谷歌学术镜像https://xs2.dailyheadlines.cc/scholar?start={artical_num}&q={key_words}&hl=zh-CN&as_sdt=0,5
         #https://scholar.google.com/scholar?start={artical_num}&q={key_words}&hl=zh-CN&as_sdt=0,5
         #https://scholar.lanfanshu.cn/
         #https://xs.dailyheadlines.cc/
@@ -49,11 +49,10 @@ class Scholar():
             return self
         
         self.search_result_nums = self.get_result_nums(scholar_result_soup)
-        
+        self.artical = []
         for i in range(artical_num, artical_num + 10):
             artical_info_all = bs_find(scholar_result_soup, 'div', ['class', 'data-rp'], ['gs_r gs_or gs_scl', i])
             info = self.get_artical_base_info(artical_info_all)
-            
             name, url, statu, text = self.get_artical_name_url(artical_info_all)
             info['name'] = name
             info['url'] = url
@@ -103,7 +102,7 @@ class Scholar():
         name = artical_name.text
         #name = ''.join(i.string for i in artical_name.contents if i)
         name = str_replace(['/', '\\', ':', '*', '"', '?', '>', '<', '|'], name,'_')
-        name = str_replace(['[图书][B] ', '[引用][C] '], name,'')
+        name = str_replace(['[图书][B] ', '[引用][C] ', '[HTML][HTML] '], name,'')
         artical_url = artical_name.find('a')
         try:
             url = artical_url.attrs["href"]
