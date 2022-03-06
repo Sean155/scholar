@@ -5,6 +5,7 @@ import sys
 import time
 from typing import List, Tuple, Dict
 from PyQt5 import QtCore, QtGui, QtWidgets
+from artical import Artical
 from google_scholar import get_scholar, Scholar
 from utils import save_file
 from typing import Optional
@@ -51,9 +52,9 @@ class main_w2(QMainWindow, Ui_MainWindow):
         self.up.clicked.connect(lambda :self.Up(self.keyword1.toPlainText(),self.num_gui.toPlainText()))
         self.next.clicked.connect(lambda :self.Next(self.keyword1.toPlainText(),self.num_gui.toPlainText()))
         self.go.clicked.connect(lambda :self.Go(self.keyword1.toPlainText(),self.num_gui.toPlainText()))
-        self.button_is_close=False
+        self.button_is_close = False
         self.scholar : Scholar
-        self.artical_datebase = {}
+        self.artical_datebase: Dict[str, List[Artical, Tuple[str, str]]] = {}
         self.thread = Thread1()
         self.thread.send_scholar.connect(self.save_scholar)
         self.send_kw_artical_num.connect(self.thread.save_kw_artical_num)
