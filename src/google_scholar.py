@@ -28,16 +28,16 @@ class Scholar():
     statu: bool = True
     text: str = ''
     
-    def search_results(self, key_words: str, search_page: str) -> 'Scholar':
+    def search_results(self, key_words: str, artical_num: str) -> 'Scholar':
         '''
         获取搜索结果
         
         返回一页（10条）结果
         '''
-        artical_num = (int(search_page)-1)*10
+        artical_num = (int(artical_num)-1)
         key_words = str_replace([' '], key_words, '+')
-        scholar_link = f'https://scholar.google.com/scholar?start={artical_num}&q={key_words}&hl=zh-CN&as_sdt=0,5' 
-        #https://xs2.dailyheadlines.cc/scholar?start={artical_num}&q={key_words}&hl=zh-CN&as_sdt=0,5
+        scholar_link = f'https://xs2.dailyheadlines.cc/scholar?start={artical_num}&q={key_words}&hl=zh-CN&as_sdt=0,5' 
+        #谷歌学术镜像不走代理https://xs2.dailyheadlines.cc/scholar?start={artical_num}&q={key_words}&hl=zh-CN&as_sdt=0,5
         #https://scholar.google.com/scholar?start={artical_num}&q={key_words}&hl=zh-CN&as_sdt=0,5
         #https://scholar.lanfanshu.cn/
         #https://xs.dailyheadlines.cc/
