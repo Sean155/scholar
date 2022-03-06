@@ -10,6 +10,10 @@ class Artical(BaseModel):
     
     文章的基本属性：
     Author, Name, Url, Time, Journal, Database...
+    
+    statu: 若为False则表示获取基本属性失败
+    
+    text: 获取基本属性失败时反馈内容
     '''
     author: str
     name: str
@@ -24,13 +28,16 @@ class Artical(BaseModel):
         '''
         获取摘要并翻译
         '''
-        abstract_res = get_abstract(url=self.url).get(database=self.database, tag=self.name)
-        en = abstract_res.text
+        if not self.statu:
+            return self.text, self.text
+        
+        abstract_res = get_abstract(self.url).get(self.database, self.name, self.year)
+        en = abstract_res.text 
         
         if abstract_res.statu:
-            ch = google_translator.trans(words=en)
+            ch = google_translator.trans(words=en) + f'\nurl: {self.url}'
         else:
-            ch = en
+            ch = en + f'\nurl: {self.url}'
         return en, ch
 
 def get_artical(params: Dict[str, str]) -> 'Artical':
@@ -44,7 +51,9 @@ def get_artical(params: Dict[str, str]) -> 'Artical':
         'url': value, 
         'year': value, 
         'journal': value, 
-        'database': value
+        'database': value,
+        'statu': True | False,
+        'text': value
     }
     '''
     
@@ -62,7 +71,9 @@ if __name__ == '__main__':
         'url': 'https://onlinelibrary.wiley.com/doi/full/10.1002/er.5313',
         'time': 'time1',
         'journal': 'journal1',
-        'database': 'Wiley Online Library'
+        'database': 'Wiley Online Library',
+        'statu': True,
+        'text': ''
     })
     en, ch = a.abstract()
     print(time.localtime())
