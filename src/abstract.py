@@ -6,7 +6,7 @@ from typing import Any, List, Dict, Union
 from utils import client, Response, str_replace, bs, bs_find
 
 
-db_list = ['aip', 'elsevier', 'iop', 'wiley']
+db_list = ['aip', 'elsevier', 'iop', 'wiley', 'springer']
 
 over_five_Wall_url = 'http://10.141.5.152:8191/v1'
 
@@ -32,10 +32,10 @@ class get_abstract():
                 self.text = getattr(self, i)()
                 return self
         try:
-            self.text = get_abstract_google(tag)
+            self.text = get_abstract_baidu(tag) + 'BD'
         except:
             try:
-                self.text = get_abstract_baidu(tag)
+                self.text = get_abstract_google(tag) + 'GG'
             except:
                 self.statu = False
                 self.text = f'Failed to get abstract from google scholar, baidu scholar.'
@@ -115,7 +115,7 @@ class get_abstract():
         Database tag: Elsevier
         '''
         
-        return self.abstract_find(attr_value='abstract author')
+        return self.abstract_find(attr_value='abstract author', is_cloud=False)
 
     
     def iop(self) -> str:
@@ -133,6 +133,13 @@ class get_abstract():
         Notice! Cloudflare Wall 
         '''
         return self.abstract_find(tag='section', attr_value='article-section article-section__abstract', is_cloud=True)
+
+
+    def springer(self) -> str:
+        '''
+        Database tag: springer 
+        '''
+        return self.abstract_find(attr_value='c-article-section__content')
 
 
 def get_abstract_google(artical_name: str) -> str:
