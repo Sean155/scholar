@@ -3,18 +3,50 @@ from PyQt5.QtGui import *
 from PyQt5.QtCore import *
 import sys
 import time
-from typing import List, Tuple
+from typing import List, Tuple, Dict
 from PyQt5 import QtCore, QtGui, QtWidgets
 from google_scholar import get_scholar, Scholar
-from google_translator import google_translator
-from mainwindow import *
 from utils import save_file
+from typing import Optional
+from mainwindow import *
 
+class Thread1(QThread):
+    send_scholar = pyqtSignal(Scholar)
+    def __init__(self, parent: Optional[QObject] = ...) -> None:
+        super().__init__()
+    
+    def run(self):
+        scholar = get_scholar(self.key_words, self.artical_num)
+        self.send_scholar.emit(scholar)
+        print('scholar')
+        pass
+
+    def save_kw_artical_num(self, kw_artical_num: list):
+        self.key_words = kw_artical_num[0]
+        self.artical_num = kw_artical_num[1]
+        
+class Thread2(QThread):
+    send_artical_database = pyqtSignal(dict)
+    send_reflash_main = pyqtSignal(int)
+    def __init__(self, schloar: Scholar, artical_num: int, i: int, artical_datebase: Dict) -> None:
+        self.scholar, self.artical_num, self.i, self.artical_datebase = schloar, artical_num, i, artical_datebase
+        super().__init__()
+    
+    def run(self):
+        for j in range(self.artical_num, self.artical_num+10):
+            self.artical_datebase[str(j)] = [self.scholar.artical[self.i], self.scholar.artical[self.i].abstract()]#访问变量修改
+            self.i +=1              
+            if self.i < 10:
+                time.sleep(4)
+            self.send_reflash_main.emit(self.i)
+        self.send_artical_database.emit(self.artical_datebase)
+    
 class main_w2(QMainWindow, Ui_MainWindow):
+    send_kw_artical_num = pyqtSignal(list)
     def __init__(self):
         super().__init__()
         self.setupUi(self)
-        self.download.clicked.connect(lambda :self.Download(self.num_gui.toPlainText()))
+        self.download.clicked.connect(self.Download)
         self.search.clicked.connect(lambda :self.Search(self.keyword1.toPlainText()))
         self.up.clicked.connect(lambda :self.Up(self.keyword1.toPlainText(),self.num_gui.toPlainText()))
         self.next.clicked.connect(lambda :self.Next(self.keyword1.toPlainText(),self.num_gui.toPlainText()))
@@ -22,24 +54,50 @@ class main_w2(QMainWindow, Ui_MainWindow):
         self.button_is_close=False
         self.scholar : Scholar
         self.artical_datebase = {}
+        self.thread = Thread1()
+        self.thread.send_scholar.connect(self.save_scholar)
+        self.send_kw_artical_num.connect(self.thread.save_kw_artical_num)
 
+    
+    def send_kw_(self):
+        self.send_kw_artical_num.emit([self.key_words, self.artical_num])
+        
+    
+    
+    
     def loading(self, artical_num) -> None:
         '''
         缓存摘要
         '''
+        def reflash(i: int, self=self):
+            self.progressBar.setValue(i*10)
+            QApplication.processEvents()
+        
+        def save_artical_datebase(artical_datebase: Dict, self=self):
+            self.artical_datebase = artical_datebase
+            self.redisplay(self.artical_num)
+            self.button_is_close = False
+            self.button_statu()
+              
         self.results_gui.setText(str(self.scholar.search_result_nums))
         self.button_is_close = True
         self.button_statu()
         i = 0
-        for j in range(artical_num, artical_num+10):
-            self.artical_datebase[str(j)] = [self.scholar.artical[i], self.scholar.artical[i].abstract()]#访问变量修改
-            i +=1              
-            if i < 10:
-                time.sleep(4)
-            self.progressBar.setValue(i*10)
-            QApplication.processEvents()
-            
+        self.thread2 = Thread2(self.scholar, artical_num, i, self.artical_datebase)
+        self.thread2.send_reflash_main.connect(reflash)
+        self.thread2.send_artical_database.connect(save_artical_datebase)
+        self.thread2.start()
         
+        
+        # for j in range(artical_num, artical_num+10):
+        #     self.artical_datebase[str(j)] = [self.scholar.artical[i], self.scholar.artical[i].abstract()]#访问变量修改
+        #     i +=1              
+        #     if i < 10:
+        #         time.sleep(4)
+        #     self.progressBar.setValue(i*10)
+        #     QApplication.processEvents()
+            
+            
 
     def button_statu(self) -> None:
         '''
@@ -68,11 +126,10 @@ class main_w2(QMainWindow, Ui_MainWindow):
         self.author_gui.setPlainText(a.author)
 
 
-    def Download(self, artical_num: str):
+    def Download(self, artical_num):
         '''
         定义下载按钮
         '''
-        artical_num = int(artical_num)
         a = self.artical_datebase[artical_num][0]
         name = a.name
         fname, _ = QFileDialog.getSaveFileName(self, 'save file', name)
@@ -82,25 +139,26 @@ class main_w2(QMainWindow, Ui_MainWindow):
         else:
             print("download failed")
 
-
+    def save_scholar(self, scholar: Scholar):
+            self.scholar = scholar
+            if self.scholar.statu:
+                self.loading(self.artical_num)           
+            else:
+                self.Abstract_1.setText(self.scholar.text)
+    
     def Search(self, key_words: str) -> None:
         '''
         定义搜索按钮
         '''
+        self.key_words = key_words
         self.msg()
         self.search.setDisabled(True)
-        artical_num = 1
+        self.artical_num = 1
         self.scholar = ''
-
-        self.abstracts = []
-        self.scholar = get_scholar(key_words,artical_num)
-        if self.scholar.statu:
-            self.loading(artical_num)
-            self.redisplay(artical_num)
-            self.button_is_close = False
-            self.button_statu()
-        else:
-            self.Abstract_1.setText(self.scholar.text)
+        self.send_kw_()
+        self.thread.start()
+    
+        
 
 
     def Up(self,key_words: str,artical_num: str) -> None :
