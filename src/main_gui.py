@@ -387,4 +387,3 @@ class Ui_MainWindow(object):
         self.next.setText(_translate("MainWindow", "Next"))
         self.go.setText(_translate("MainWindow", "Go"))
         self.download.setText(_translate("MainWindow", "Download"))
-
