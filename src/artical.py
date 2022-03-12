@@ -1,19 +1,21 @@
 from typing import Dict, Tuple
 from pydantic import BaseModel, ValidationError
-from abstract import get_abstract
-from google_translator import google_translator
+from .abstract import get_abstract
+from .google_translator import google_translator
 import time 
+
 
 class Artical(BaseModel):
     '''
-    Artical 类
+        :说明:
+          枚举论文的基本属性：
+          ``author``, ``name``, ``url``, ``year``, ``journal``, ``database``, 
+          
+          提供``abstract``方法获取当前论文的摘要及反应
     
-    文章的基本属性：
-    Author, Name, Url, Time, Journal, Database...
-    
-    statu: 若为False则表示获取基本属性失败
-    
-    text: 获取基本属性失败时反馈内容
+          ``Artical.statu``若为``False``则表示获取论文基本属性失败
+        
+          ``Artical.text``: 获取基本属性失败的反馈
     '''
     author: str
     name: str
@@ -24,9 +26,11 @@ class Artical(BaseModel):
     statu: bool
     text: str
     
+    
     def abstract(self) -> Tuple[str, str]:
         '''
-        获取摘要并翻译
+            :说明:
+              获取摘要并翻译
         '''
         if not self.statu:
             return self.text, self.text
@@ -40,21 +44,26 @@ class Artical(BaseModel):
             ch = en + f'\nurl: {self.url}'
         return en, ch
 
+
 def get_artical(params: Dict[str, str]) -> 'Artical':
     '''
-    初始化 Artical 类
-    
-    params = {
+        :说明:
+          初始化 Artical 类
+          
+        :参数:
+          * ``params: Dict[str, str]``: 论文基本信息
+          
+            params = {
         
-        'author': value,
-        'name': value, 
-        'url': value, 
-        'year': value, 
-        'journal': value, 
-        'database': value,
-        'statu': True | False,
-        'text': value
-    }
+                    'author': str,
+                    'name': str, 
+                    'url': str, 
+                    'year': str, 
+                    'journal': str, 
+                    'database': str,
+                    'statu': True | False,
+                    'text': str | None
+            }
     '''
     
     try:
@@ -63,6 +72,7 @@ def get_artical(params: Dict[str, str]) -> 'Artical':
         print(f'Wrong params:{params}')
         print(f'{e.errors()}')
     raise ValueError('Falied to initalize class Artical')
+
 
 if __name__ == '__main__':
     print(time.localtime())
