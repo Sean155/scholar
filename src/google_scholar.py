@@ -17,6 +17,7 @@ class Scholar():
     
     search_result_nums: int
     artical: List[Artical] = []
+    items: int = 10
     statu: bool = True
     text: str = ''
     
@@ -29,7 +30,7 @@ class Scholar():
               获取搜索结果
               返回一页（10条）结果
         '''
-        artical_num = (int(artical_num)-1)
+        artical_num: int = int(artical_num)-1
         key_words = str_replace([' '], key_words, '+')
         scholar_link = self.scholar_link.format(artical_num, key_words)
         
@@ -54,8 +55,10 @@ class Scholar():
             return self
         
         self.search_result_nums = self.get_result_nums(scholar_result_soup)
-        self.artical = []
-        for i in range(artical_num, artical_num + 10):
+        
+        results = self.search_result_nums if self.search_result_nums<(artical_num + 10) else artical_num + 10
+        self.items = self.search_result_nums - artical_num if self.search_result_nums<(artical_num + 10) else 10
+        for i in range(artical_num, results):
             artical_info_all = bs_find(scholar_result_soup, 'div', ['class', 'data-rp'], ['gs_r gs_or gs_scl', i])
             info = self.get_artical_base_info(artical_info_all)
             name, url, statu, text = self.get_artical_name_url(artical_info_all)
