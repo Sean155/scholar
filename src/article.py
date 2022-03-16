@@ -5,7 +5,7 @@ from .google_translator import google_translator
 import time 
 
 
-class Artical(BaseModel):
+class Article(BaseModel):
     '''
         :说明:
           枚举论文的基本属性：
@@ -13,9 +13,9 @@ class Artical(BaseModel):
           
           提供``abstract``方法获取当前论文的摘要及反应
     
-          ``Artical.statu``若为``False``则表示获取论文基本属性失败
+          ``Article.statu``若为``False``则表示获取论文基本属性失败
         
-          ``Artical.text``: 获取基本属性失败的反馈
+          ``Article.text``: 获取基本属性失败的反馈
     '''
     author: str
     name: str
@@ -45,10 +45,10 @@ class Artical(BaseModel):
         return en, ch
 
 
-def get_artical(params: Dict[str, str]) -> 'Artical':
+def get_article(params: Dict[str, str]) -> 'Article':
     '''
         :说明:
-          初始化 Artical 类
+          初始化 Article 类
           
         :参数:
           * ``params: Dict[str, str]``: 论文基本信息
@@ -67,16 +67,16 @@ def get_artical(params: Dict[str, str]) -> 'Artical':
     '''
     
     try:
-        return Artical.parse_obj(params)
+        return Article.parse_obj(params)
     except ValidationError as e:
         print(f'Wrong params:{params}')
         print(f'{e.errors()}')
-    raise ValueError('Falied to initalize class Artical')
+    raise ValueError(f'Falied to initalize class Article\n{params}')
 
 
 if __name__ == '__main__':
     print(time.localtime())
-    a = get_artical({
+    a = get_article({
         'name1': 'name1',
         'url': 'https://onlinelibrary.wiley.com/doi/full/10.1002/er.5313',
         'time': 'time1',
