@@ -1,8 +1,9 @@
-from utils import client
+from .utils import client
 from typing import Dict, List
 
 
 class google_translator():
+
 
     def __init__(self) -> None:
         
@@ -11,19 +12,21 @@ class google_translator():
     
     def s_lan(self, lan: str = ..., **kwargs) -> str:
         '''
-        源语言
+            源语言
         '''
         if lan not in ['auto', 'en', 'ja', 'ru']:
             raise
         return lan
     
+    
     def t_lan(self, lan: str = ..., **kwargs) -> str:
         '''
-        目标语言
+            目标语言
         '''
         if lan not in ['zh-CN', 'en', 'ja', 'ru']:
             raise
         return lan
+    
     
     def _json(self, results: List, **kwargs) -> str:
         res = ''
@@ -31,15 +34,18 @@ class google_translator():
             res = res + i[0]
         return res
     
+    
     @classmethod
     def trans(cls, words: str = ..., s_: str = 'auto', t_: str = 'zh-CN') -> str:
         '''
-        调用谷歌翻译api
-        words: 待翻译内容
-        s_: 源语言，默认auto
-        t_: 目标语言，默认zh-CN
+            调用谷歌翻译api
+            
+            ``words: srt``: 待翻译内容
+            ``s_: str``: 源语言, 默认auto
+            ``t_: str``: 目标语言, 默认zh-CN
         '''
         return cls()._trans(words, s_, t_)
+    
     
     def _trans(self, words: str, s_: str, t_: str) -> str:
         

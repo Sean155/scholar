@@ -1,65 +1,92 @@
 from httpx import Client, Response
+from httpx._exceptions import *
 from typing import Dict, List, Union, Tuple
 from bs4 import BeautifulSoup, PageElement, NavigableString, Tag
 import re
+from .config import Config
 
 T = Union[BeautifulSoup, Tag, NavigableString]
+config = Config()
 
 class client():
     
+    proxy_statu: bool = config.proxy_statu
+    
     def __init__(self):
-
         self.headers: Dict = {
-                "User-Agent": 'Mozilla/5.0 (iPhone; CPU iPhone OS 15_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.1.1 Mobile/15E148 Safari/604.1',
-                "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+                    "User-Agent": 'Mozilla/5.0 (iPhone; CPU iPhone OS 15_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.1.1 Mobile/15E148 Safari/604.1',
+                    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
                 }
-        self.proxies: str = "http://127.0.0.1:7890"
+        
+        if self.proxy_statu:
+            self.proxies: str = config.proxies
     
     @classmethod
-    def get(cls, url: str, proxy: bool = True) -> Response:
+    def get(cls, url: str) -> Response:
         
-        api = cls().call(proxy=proxy)
-        
-        res = api.get(url=url, timeout=20)
+        api = cls().call()
+        res = api.get(url=url, timeout=25)
+        if res.status_code == 302:
+            res = api.send(res.next_request)
         api.close()
         return res
     
     @classmethod
-    def post(cls, url: str, json: Dict, proxy: bool = True) -> Response:
-        
-        api = cls().call(proxy=proxy)
-        res = api.post(url=url, json=json, timeout=20)
+    def get_with_headers(cls, url: str, headers: Dict = None) -> Response:
+        api = cls().call(headers=headers)
+        res = api.get(url=url, timeout=25)
         api.close()
         return res
     
-    def call(self, proxy: bool) -> Client:
-        if proxy:
-            return Client(proxies=self.proxies, headers=self.headers)
+    @classmethod
+    def get_no_headers(cls, url: str) -> Response:
+        api = Client()
+        res = api.get(url=url, timeout=25)
+        api.close()
+        return res
+    
+    @classmethod
+    def post(cls, url: str, json: Dict) -> Response:
+        
+        api = cls().call()
+        res = api.post(url=url, json=json, timeout=25)
+        api.close()
+        return res
+    
+    
+    def call(self, headers: Dict = None) -> Client:
+        if not headers:
+            headers=self.headers
+        if self.proxy_statu:
+            return Client(proxies=self.proxies, headers=headers)
         return Client(headers=self.headers)
+
 
 def str_replace(char_list: List[str], string: str, re_string: str) -> str:
     '''
-    替换字符
-    
-    char_list: 需要替换的字符
-    
-    string: 需要替换字符的字符串
-    
-    re_string: 替换的目标
-    
-    例如：
-    
-    str_replace ( [ '?' ] , 'test?' , '' )
-    
-    ==> 'test'
+        替换字符
+        
+          * ``char_list: Lsit[str]``: 需要替换的字符
+            
+          * ``string: str``: 需要替换字符的字符串
+            
+          * ``re_string: str``: 替换的目标
+        
+        例如：
+        
+            str_replace ([ '?' ], 'test?', '' )
+            
+            ==> 'test'
     '''
     for i in char_list:
         string = string.replace(i, re_string)
     return string
 
+
 def bs(url: str) -> BeautifulSoup:
     
     return BeautifulSoup(client.get(url).content, features="html.parser")
+
 
 def bs_find(bs: T, 
             tag: str, 
@@ -79,18 +106,16 @@ def bs_find(bs: T,
     return bs.find(tag, attr)
 
 
-
-#获取sci_hub下载链接
-def get_dl_link(artical_link: str) -> Tuple[bool, str]:
+def get_dl_link(article_link: str) -> Tuple[bool, str]:
     '''
-    获取sci_hub下载链接
+        获取sci_hub下载链接
     '''
-    sci_hub_link = "https://sci-hub.se/" + artical_link
+    sci_hub_link = "https://sci-hub.se/" + article_link
     soup2 = BeautifulSoup(client.get(sci_hub_link).content, features="html.parser")
     dl_link_info = soup2.find("div", {"id": "buttons"})
     
     if not dl_link_info:
-        return False, artical_link
+        return False, article_link
     
     dl_link_info = dl_link_info.find('button')
     loc = dl_link_info.attrs['onclick']
@@ -103,19 +128,17 @@ def get_dl_link(artical_link: str) -> Tuple[bool, str]:
     return True, dl_link
 
 
-
-
-#储存文件
-def save_file(link: str, name: str) -> None:
+def save_file(link: str, dir: str) -> None:
     '''
-    下载文献
+        下载文献
     '''
+    dir = str_replace(['/', '\\', ':', '*', '"', '?', '>', '<', '|'], dir,'_')
     statu, url = get_dl_link(link)
     if statu:
-        with open(name + '.pdf', 'wb') as f:
+        with open(dir + '.pdf', 'wb') as f:
             f.write(client.get(url).content)
-        print(name + '     successful')
+        print(dir + '     successful')
     else:
-        with open('error.txt', 'a+') as f:
-            f.write(f'{name}  {url}  \n')
-        print(name + '     failed')
+        with open('error.txt', 'a+', encoding='utf-8') as f:
+            f.write(f'{dir}  {url}  \n')
+        print(dir + '     failed')
