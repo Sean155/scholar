@@ -25,25 +25,40 @@ class client():
     def get(cls, url: str) -> Response:
         
         api = cls().call()
-        res = api.get(url=url, timeout=20)
+        res = api.get(url=url, timeout=25)
         if res.status_code == 302:
             res = api.send(res.next_request)
         api.close()
         return res
     
+    @classmethod
+    def get_with_headers(cls, url: str, headers: Dict = None) -> Response:
+        api = cls().call(headers=headers)
+        res = api.get(url=url, timeout=25)
+        api.close()
+        return res
+    
+    @classmethod
+    def get_no_headers(cls, url: str) -> Response:
+        api = Client()
+        res = api.get(url=url, timeout=25)
+        api.close()
+        return res
     
     @classmethod
     def post(cls, url: str, json: Dict) -> Response:
         
         api = cls().call()
-        res = api.post(url=url, json=json, timeout=20)
+        res = api.post(url=url, json=json, timeout=25)
         api.close()
         return res
     
     
-    def call(self) -> Client:
+    def call(self, headers: Dict = None) -> Client:
+        if not headers:
+            headers=self.headers
         if self.proxy_statu:
-            return Client(proxies=self.proxies, headers=self.headers)
+            return Client(proxies=self.proxies, headers=headers)
         return Client(headers=self.headers)
 
 
@@ -117,6 +132,7 @@ def save_file(link: str, dir: str) -> None:
     '''
         下载文献
     '''
+    dir = str_replace(['/', '\\', ':', '*', '"', '?', '>', '<', '|'], dir,'_')
     statu, url = get_dl_link(link)
     if statu:
         with open(dir + '.pdf', 'wb') as f:
