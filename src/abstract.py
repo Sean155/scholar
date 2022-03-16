@@ -4,11 +4,11 @@ from bs4 import BeautifulSoup
 from bs4.element import PageElement
 from typing import Any, List, Dict, Union
 from .utils import client, Response, str_replace, bs, bs_find, config, ConnectTimeout, HTTPError
-import ptvsd
+# import ptvsd
 
-db_list = ['aip', 'elsevier', 'iop', 'wiley', 'springer']
+db_list = ['aip', 'elsevier', 'wiley', 'springer']
 
-
+# ptvsd.debug_this_thread()
 class get_abstract():
     '''
         :说明:
@@ -128,15 +128,28 @@ class get_abstract():
             数据库: AIP
         '''
         
-        return self.abstract_find(attr_value='NLM_paragraph')
+        return self.abstract_find(attr_value='NLM_paragraph', is_cloud=True)
 
     
     def elsevier(self) -> str:
         '''
             数据库: Elsevier
         '''
-        #ptvsd.debug_this_thread()
-        return self.abstract_find(attr_value='abstract author', is_cloud=False)
+
+        if config.elsevier_api_key:
+            pii = re.search(r'pii/(.*)', self.url)[1]
+            res = client.get_with_headers(
+                        url = f'https://api.elsevier.com/content/article/pii/{pii}?view=META_ABS',
+                        headers={
+                            'Accept': 'application/json',
+                            'X-ELS-APIKey': config.elsevier_api_key,
+                        }
+            )
+            text = res.json()['full-text-retrieval-response']['coredata']['dc:description']
+            text = str_replace(['   '], text, '')
+            return text + '    from api'
+        else:
+            return self.abstract_find(attr_value='abstract author', is_cloud=False)
 
     
     def iop(self) -> str:
@@ -155,23 +168,39 @@ class get_abstract():
             
             存在5s墙
         '''
-        return self.abstract_find(tag='section', attr_value='article-section article-section__abstract', is_cloud=True)
+        try:
+            doi = re.search(r'abs/(.*)', self.url)[1]
+            doi = '%22' + str_replace(['/'], doi, '%2F') + '%22'
+            res = client.get_no_headers(
+                        url = f'https://onlinelibrary.wiley.com/action/sru?query=dc.identifier%3D{doi}',
+                    )
+            res = BeautifulSoup(res, features='html.parser')
+            return res.find('dc:description').string + '    from api'
+        except:
+            return self.abstract_find(tag='section', attr_value='article-section article-section__abstract', is_cloud=True)
 
 
     def springer(self) -> str:
         '''
             数据库: springer 
         '''
-        return self.abstract_find(attr_value='c-article-section__content')
+        if config.springer_api_key:
+            doi = re.search(r'article/(.*)', self.url)[1]
+            res = client.get_with_headers(
+                        url = f'https://api.springernature.com/metadata/json/doi/{doi}?api_key={config.springer_api_key}'
+                )
+            return res.json()['records'][0]['abstract'] + '     from api'
+        else:
+            return self.abstract_find(attr_value='c-article-section__content')
 
 
-def get_abstract_google(artical_name: str) -> str:
+def get_abstract_google(article_name: str) -> str:
     '''
         从谷歌学术获取英文摘要
     '''
-    artical_name = str_replace([' '], artical_name, '+')
-    artical_link = config.scholar_link + '/scholar?hl=zh-CN&as_sdt=0%2C5&q={artical_name}&btnG='
-    scholar_result_soup = bs(artical_link)
+    article_name = str_replace([' '], article_name, '+')
+    article_link = config.scholar_link + '/scholar?hl=zh-CN&as_sdt=0%2C5&q={article_name}&btnG='
+    scholar_result_soup = bs(article_link)
     
     abstract = bs_find(scholar_result_soup, 'div', 'class', 'gs_rs').contents
 
@@ -183,18 +212,41 @@ def get_abstract_google(artical_name: str) -> str:
     return abstract
 
 
-def get_abstract_baidu(artical_name: str) -> str:
+def get_abstract_baidu(article_name: str) -> str:
     '''
         从百度学术获取摘要
     '''
-    artical_name = str_replace([' '], artical_name, '+')
-    a = bs(f'https://xueshu.baidu.com/s?wd={artical_name}')
+    article_name = str_replace([' '], article_name, '+')
+    
+    res = client.post(
+            url = config.over_five_wall_url, 
+            json={
+                    'cmd': 'request.get',
+                    'url': f'https://xueshu.baidu.com/s?wd={article_name}',
+                    'session': config.session,
+                    'maxTimeout': 60000
+                    }
+            ).json()["solution"]["response"]
+    
+    a = BeautifulSoup(res, features='html.parser')
     b = a.find('head').find('script').string
 
     p = re.compile(r"\('//(.*)'\);}").search(b)[1]
-    time.sleep(3)
-    c = bs('https://' + p)
+    time.sleep(1)
+    
+    res2 = client.post(
+            url = config.over_five_wall_url, 
+            json={
+                    'cmd': 'request.get',
+                    'url': 'https://' + p,
+                    'session': config.session,
+                    'maxTimeout': 60000
+                    }
+            ).json()["solution"]["response"]
+    
+    c = BeautifulSoup(res2, features='html.parser')
     d = bs_find(c, 'p', 'class', 'abstract')
+    #ptvsd.debug_this_thread()
     return d.string
 
 
