@@ -12,7 +12,7 @@ class Config(BaseSettings):
     scholar_link: str = 'https://scholar.google.com/'
 
     elsevier_api_key: str = ''
-    springer_api_key: str = '01240d35a31bf1681fcbcb9a96fc5090'
+    springer_api_key: str = ''
     
     class Config:
         extra = "ignore"
