@@ -2,7 +2,7 @@ from bs4 import BeautifulSoup
 from .utils import bs_find, str_replace, bs, T, config, ProxyError, ConnectError, ConnectTimeout
 from typing import List, Tuple, Dict, Union
 import re
-from .artical import get_artical, Artical
+from .article import get_article, Article
 #import ptvsd
 
 class Scholar():
@@ -16,7 +16,7 @@ class Scholar():
     '''
     
     search_result_nums: int
-    artical: List[Artical] = []
+    article: List[Article] = []
     items: int = 10
     statu: bool = True
     text: str = ''
@@ -24,15 +24,15 @@ class Scholar():
     def __init__(self):
         self.scholar_link = config.scholar_link + 'scholar?start={}&q={}&hl=zh-CN&as_sdt=0,5'
     
-    def search_results(self, key_words: str, artical_num: str) -> 'Scholar':
+    def search_results(self, key_words: str, article_num: str) -> 'Scholar':
         '''
             :说明:
               获取搜索结果
               返回一页（10条）结果
         '''
-        artical_num: int = int(artical_num)-1
+        article_num: int = int(article_num)-1
         key_words = str_replace([' '], key_words, '+')
-        scholar_link = self.scholar_link.format(artical_num, key_words)
+        scholar_link = self.scholar_link.format(article_num, key_words)
         
         try:
             scholar_result_soup = bs(scholar_link)
@@ -56,33 +56,33 @@ class Scholar():
         
         self.search_result_nums = self.get_result_nums(scholar_result_soup)
         
-        results = self.search_result_nums if self.search_result_nums<(artical_num + 10) else artical_num + 10
-        self.items = self.search_result_nums - artical_num if self.search_result_nums<(artical_num + 10) else 10
-        for i in range(artical_num, results):
-            artical_info_all = bs_find(scholar_result_soup, 'div', ['class', 'data-rp'], ['gs_r gs_or gs_scl', i])
-            info = self.get_artical_base_info(artical_info_all)
-            name, url, statu, text = self.get_artical_name_url(artical_info_all)
+        results = self.search_result_nums if self.search_result_nums<(article_num + 10) else article_num + 10
+        self.items = self.search_result_nums - article_num if self.search_result_nums<(article_num + 10) else 10
+        for i in range(article_num, results):
+            article_info_all = bs_find(scholar_result_soup, 'div', ['class', 'data-rp'], ['gs_r gs_or gs_scl', i])
+            info = self.get_article_base_info(article_info_all)
+            name, url, statu, text = self.get_article_name_url(article_info_all)
             info['name'] = name
             info['url'] = url
             info['text'] += text
             info['statu'] = statu if info['statu'] else False
 
-            self.artical.append(get_artical(info))
+            self.article.append(get_article(info))
             
         return self
     
     
-    def get_artical_base_info(self, artical_info_all: T) -> Dict:
+    def get_article_base_info(self, article_info_all: T) -> Dict:
         '''
             :说明:
               获取文章基本属性：
               作者、年份、期刊、数据库
         '''
         
-        artical_time = bs_find(artical_info_all, 'div', 'class', 'gs_a').contents
-        artical_time = ''.join(i.string for i in artical_time if i if i.string)
+        article_time = bs_find(article_info_all, 'div', 'class', 'gs_a').contents
+        article_time = ''.join(i.string for i in article_time if i if i.string)
         
-        return self.format_base_info(artical_time)
+        return self.format_base_info(article_time)
             
             
     def get_result_nums(self, scholar_result_soup: BeautifulSoup) -> int:
@@ -104,20 +104,19 @@ class Scholar():
         return int(str_replace([','], search_result_nums[1], ''))
     
     
-    def get_artical_name_url(self, artical_info_all: T) -> Tuple[str, Union[str, None], bool, str]:
+    def get_article_name_url(self, article_info_all: T) -> Tuple[str, Union[str, None], bool, str]:
         '''
             :说明:
               获取文章标题、链接
         '''        
-        artical_name = bs_find(artical_info_all, 'h3', 'class', 'gs_rt')
+        article_name = bs_find(article_info_all, 'h3', 'class', 'gs_rt')
         
-        name = artical_name.text
-        #name = ''.join(i.string for i in artical_name.contents if i)
-        name = str_replace(['/', '\\', ':', '*', '"', '?', '>', '<', '|'], name,'_')
+        name = article_name.text
+        #name = ''.join(i.string for i in article_name.contents if i)
         name = str_replace(['[图书][B] ', '[引用][C] ', '[HTML][HTML] '], name,'')
-        artical_url = artical_name.find('a')
+        article_url = article_name.find('a')
         try:
-            url = artical_url.attrs["href"]
+            url = article_url.attrs["href"]
             statu = True
             text = ''
         except:
@@ -166,7 +165,7 @@ class Scholar():
         }
 
 
-def get_scholar(key_words: str, artical_num: str) -> 'Scholar':
+def get_scholar(key_words: str, article_num: str) -> 'Scholar':
     '''
         :说明:
           初始化``Scholar``类，
@@ -174,14 +173,14 @@ def get_scholar(key_words: str, artical_num: str) -> 'Scholar':
           
         :参数:
           * ``key_words: str``: 关键词
-          * ``artical_num: str``: 论文在搜索结果中的编号
+          * ``article_num: str``: 论文在搜索结果中的编号
     '''
-    return Scholar().search_results(key_words, artical_num)
+    return Scholar().search_results(key_words, article_num)
 
 
 if __name__ == '__main__':
     a = get_scholar('thermal', 2)
-    #en, ch = a.artical[0].abstract()
+    #en, ch = a.article[0].abstract()
     #nums = a.search_result_nums
     pass
     #print(en, ch)
