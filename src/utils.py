@@ -106,16 +106,16 @@ def bs_find(bs: T,
     return bs.find(tag, attr)
 
 
-def get_dl_link(artical_link: str) -> Tuple[bool, str]:
+def get_dl_link(article_link: str) -> Tuple[bool, str]:
     '''
         获取sci_hub下载链接
     '''
-    sci_hub_link = "https://sci-hub.se/" + artical_link
+    sci_hub_link = "https://sci-hub.se/" + article_link
     soup2 = BeautifulSoup(client.get(sci_hub_link).content, features="html.parser")
     dl_link_info = soup2.find("div", {"id": "buttons"})
     
     if not dl_link_info:
-        return False, artical_link
+        return False, article_link
     
     dl_link_info = dl_link_info.find('button')
     loc = dl_link_info.attrs['onclick']
