@@ -5,43 +5,43 @@ from PyQt5.QtGui import *
 from PyQt5.QtCore import *
 from typing import List, Tuple, Dict, Optional, Union
 from PyQt5 import QtCore, QtGui, QtWidgets
-from .google_scholar import get_scholar, Scholar, Artical
+from .google_scholar import get_scholar, Scholar, Article
 from .utils import save_file
 from .main_gui import *
 #import ptvsd
 
 class Thread1(QThread):
     send_scholar = pyqtSignal(Scholar)
-    def __init__(self, key_words: str, artical_num: str) -> None:
-        self.key_words, self.artical_num = key_words, artical_num
+    def __init__(self, key_words: str, article_num: str) -> None:
+        self.key_words, self.article_num = key_words, article_num
         super().__init__()
     
     def run(self) -> None:
         #ptvsd.debug_this_thread()
-        scholar = get_scholar(self.key_words, self.artical_num)
+        scholar = get_scholar(self.key_words, self.article_num)
         self.send_scholar.emit(scholar)
         
         
 class Thread2(QThread):
-    send_artical_database = pyqtSignal(dict)
+    send_article_database = pyqtSignal(dict)
     send_reflash_main = pyqtSignal(float)
-    def __init__(self, schloar: Scholar, artical_num: int, artical_datebase: Dict) -> None:
-        self.scholar, self.artical_num, self.artical_datebase = schloar, artical_num, artical_datebase
+    def __init__(self, schloar: Scholar, article_num: int, article_datebase: Dict) -> None:
+        self.scholar, self.article_num, self.article_datebase = schloar, article_num, article_datebase
         super().__init__()
     
     
     #这里有问题！！！！！！！！！！！不能这样写，可能要改成数字！！！！！
     def run(self):
-        i = self.artical_num
+        i = self.article_num
         max = self.scholar.items + i
-        for j in range(self.artical_num, max):
-            if not self.artical_datebase.__contains__(str(j)):
-                x = self.scholar.artical[j]
-                self.artical_datebase[str(j)] = [x, x.abstract()]
-            self.artical_datebase['statu'] -= 1
+        for j in range(self.article_num, max):
+            if not self.article_datebase.__contains__(str(j)):
+                x = self.scholar.article[j - 1]
+                self.article_datebase[str(j)] = [x, x.abstract()]
+            self.article_datebase['statu'] -= 1
             self.send_reflash_main.emit(j/self.scholar.items)
             time.sleep(4)
-        self.send_artical_database.emit(self.artical_datebase)     
+        self.send_article_database.emit(self.article_datebase)     
     
     
 class main_w2(QMainWindow, Ui_MainWindow):
@@ -56,11 +56,11 @@ class main_w2(QMainWindow, Ui_MainWindow):
         self.go.clicked.connect(lambda :self.Go(self.keyword1.toPlainText(),self.num_gui.toPlainText()))
         self.button_is_close = False
         self.scholar : Scholar
-        self.artical_datebase: Dict[str, Union[List[Artical, Tuple[str, str]], int]] = {}
+        self.article_datebase: Dict[str, Union[List[Article, Tuple[str, str]], int]] = {}
         self.error_msg = session_error
     
     
-    def loading(self, artical_num: int) -> None:
+    def loading(self, article_num: int) -> None:
         '''
         缓存摘要
         '''
@@ -68,23 +68,23 @@ class main_w2(QMainWindow, Ui_MainWindow):
             self.progressBar.setValue(int(statu*100))
             QApplication.processEvents()
         
-        def save_artical_datebase(artical_datebase: Dict, self=self):
-            self.artical_datebase = artical_datebase
-            self.redisplay(artical_num)
+        def save_article_datebase(article_datebase: Dict, self=self):
+            self.article_datebase = article_datebase
+            self.redisplay(article_num)
             self.button_is_close = False
             self.button_statu()
 
         self.results_gui.setText(str(self.scholar.search_result_nums))
-        item_list = [str(i) for i in range(1, self.artical_datebase['statu'] + 1)]
+        item_list = [str(i) for i in range(1, self.article_datebase['statu'] + 1)]
         items, ok = self.msg(item_list)
         if ok:
             self.button_is_close = True
             self.button_statu()
             if self.scholar.items > int(items):
                 self.scholar.items = int(items)
-            self.thread2 = Thread2(self.scholar, artical_num, self.artical_datebase)
+            self.thread2 = Thread2(self.scholar, article_num, self.article_datebase)
             self.thread2.send_reflash_main.connect(reflash)
-            self.thread2.send_artical_database.connect(save_artical_datebase)
+            self.thread2.send_article_database.connect(save_article_datebase)
             self.thread2.start()                  
             
 
@@ -99,27 +99,27 @@ class main_w2(QMainWindow, Ui_MainWindow):
         self.go.setDisabled(self.button_is_close)
     
 
-    def redisplay(self, artical_num: int) -> None:
+    def redisplay(self, article_num: int) -> None:
         '''
         根据论文号更新显示文献名、中英文摘要、第几篇文献、期刊、年份、数据库、作者
         '''
-        a = self.artical_datebase[str(artical_num)][0]
-        artical_abstract = self.artical_datebase[str(artical_num)][1]
+        a = self.article_datebase[str(article_num)][0]
+        article_abstract = self.article_datebase[str(article_num)][1]
         self.article_name.setText(a.name)
-        self.Abstract_1.setText(artical_abstract[0])
-        self.Abstract_2.setText(artical_abstract[1])
-        self.num_gui.setPlainText(str(artical_num))
+        self.Abstract_1.setText(article_abstract[0])
+        self.Abstract_2.setText(article_abstract[1])
+        self.num_gui.setPlainText(str(article_num))
         self.journal_gui.setPlainText(a.journal)
         self.year_gui.setText(a.year)
         self.datebase_gui.setPlainText(a.database)
         self.author_gui.setPlainText(a.author)
 
 
-    def Download(self, artical_num):
+    def Download(self, article_num):
         '''
         定义下载按钮
         '''
-        a = self.artical_datebase[artical_num][0]
+        a = self.article_datebase[article_num][0]
         name = a.name
         fname, _ = QFileDialog.getSaveFileName(self, 'save file', name)
         saved = save_file(a.url, fname)
@@ -135,7 +135,7 @@ class main_w2(QMainWindow, Ui_MainWindow):
         '''
         def save_scholar(scholar: Scholar, self: 'main_w2'=self):
             self.scholar = scholar
-            self.artical_datebase['statu'] = self.scholar.items
+            self.article_datebase['statu'] = self.scholar.items
             if self.scholar.statu:
                 self.loading(1)
             else:
@@ -147,60 +147,60 @@ class main_w2(QMainWindow, Ui_MainWindow):
         
         self.search.setDisabled(True)
         self.scholar = ''
-        self.artical_num_old = 1
+        self.article_num_old = 1
         self.thread = Thread1(key_words, '1')
         self.thread.send_scholar.connect(save_scholar)
         self.thread.start()
     
 
-    def Up(self,key_words: str,artical_num: str) -> None :
+    def Up(self,key_words: str,article_num: str) -> None :
         '''
         定义上按钮
         '''
         self.up.setDisabled(True)
-        artical_num= int(artical_num) - 1
-        if artical_num > 0:
-            if not self.artical_datebase.get(str(artical_num)):
+        article_num= int(article_num) - 1
+        if article_num > 0:
+            if not self.article_datebase.get(str(article_num)):
                 pass
             else:
-                self.redisplay(artical_num)
+                self.redisplay(article_num)
                 self.button_is_close = False
                 self.button_statu()
 
 
-    def Next(self,key_words: str, artical_num: str) -> None:
+    def Next(self,key_words: str, article_num: str) -> None:
         '''
         定义下按钮
         '''
         self.next.setDisabled(True)
-        self.artical_num_old = int(artical_num)
-        artical_num = int(artical_num) + 1
-        self.check_get_scholar(key_words, artical_num)
+        self.article_num_old = int(article_num)
+        article_num = int(article_num) + 1
+        self.check_get_scholar(key_words, article_num)
 
 
-    def Go(self,key_words: str, artical_num: str):
+    def Go(self,key_words: str, article_num: str):
         '''
         定义跳转按钮
         '''
         self.go.setDisabled(True)
-        artical_num = int(artical_num)
-        self.artical_datebase['statu'] = self.artical_datebase['statu'] - (artical_num - self.artical_num_old) + 1
-        self.artical_num_old = int(artical_num)
-        self.check_get_scholar(key_words, artical_num)
+        article_num = int(article_num)
+        self.article_datebase['statu'] = self.article_datebase['statu'] - (article_num - self.article_num_old) + 1
+        self.article_num_old = int(article_num)
+        self.check_get_scholar(key_words, article_num)
 
 
-    def check_get_scholar(self, key_words: str, artical_num: int) -> None:
-        if not self.artical_datebase.get(str(artical_num)):
-            if self.artical_datebase['statu'] <= 0: 
+    def check_get_scholar(self, key_words: str, article_num: int) -> None:
+        if not self.article_datebase.get(str(article_num)):
+            if self.article_datebase['statu'] <= 0: 
                 self.scholar = ''
-                self.scholar = get_scholar(key_words, str(artical_num))
-                self.artical_datebase['statu'] = self.scholar.items
+                self.scholar = get_scholar(key_words, str(article_num))
+                self.article_datebase['statu'] = self.scholar.items
             if self.scholar.statu:
-                self.loading(artical_num)
+                self.loading(article_num)
             else:
                 self.Abstract_1.setText(self.scholar.text)
         else:
-            self.redisplay(artical_num)
+            self.redisplay(article_num)
             self.button_is_close = False
             self.button_statu()
 
